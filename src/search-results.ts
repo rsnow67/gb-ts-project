@@ -1,4 +1,4 @@
-import { renderBlock } from './lib.js'
+import { renderBlock } from './lib.js';
 
 export function renderSearchStubBlock () {
   renderBlock(
@@ -9,7 +9,7 @@ export function renderSearchStubBlock () {
       <p>Чтобы начать поиск, заполните форму и&nbsp;нажмите "Найти"</p>
     </div>
     `
-  )
+  );
 }
 
 export function renderEmptyOrErrorSearchBlock (reasonMessage) {
@@ -21,7 +21,7 @@ export function renderEmptyOrErrorSearchBlock (reasonMessage) {
       <p>${reasonMessage}</p>
     </div>
     `
-  )
+  );
 }
 
 export function renderSearchResultsBlock () {
@@ -84,5 +84,5 @@ export function renderSearchResultsBlock () {
       </li>
     </ul>
     `
-  )
+  );
 }
