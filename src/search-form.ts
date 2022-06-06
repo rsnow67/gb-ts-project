@@ -19,10 +19,22 @@ export function renderSearchFormBlock(
     checkOutDefaultDate.setDate(checkInDate.getDate() + 2);
   }
 
-  const min = today.toISOString().split('T')[0];
-  const max = lastDayOfNextMonth.toISOString().split('T')[0];
-  const checkInValue = checkInDate ? checkInDate.toISOString().split('T')[0] : checkInDefaultDate.toISOString().split('T')[0];
-  const checkOutValue = checkOutDate ? checkOutDate.toISOString().split('T')[0] : checkOutDefaultDate.toISOString().split('T')[0];
+  const min = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
+    .toISOString().split('T')[0];
+  const max = new Date(lastDayOfNextMonth.getTime() - (lastDayOfNextMonth.getTimezoneOffset() * 60000))
+    .toISOString().split('T')[0];
+  const checkInValue = checkInDate ?
+    new Date(checkInDate.getTime() - (checkInDate.getTimezoneOffset() * 60000))
+      .toISOString().split('T')[0]
+    :
+    new Date(checkInDefaultDate.getTime() - (checkInDefaultDate.getTimezoneOffset() * 60000))
+      .toISOString().split('T')[0];
+  const checkOutValue = checkOutDate ?
+    new Date(checkOutDate.getTime() - (checkOutDate.getTimezoneOffset() * 60000))
+      .toISOString().split('T')[0]
+    :
+    new Date(checkOutDefaultDate.getTime() - (checkOutDefaultDate.getTimezoneOffset() * 60000))
+      .toISOString().split('T')[0];
 
   renderBlock(
     'search-form-block',
