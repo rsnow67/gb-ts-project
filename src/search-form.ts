@@ -1,14 +1,28 @@
 import { renderBlock } from './lib.js';
 
 export function renderSearchFormBlock(
-  checkInDate: string,
-  checkOutDate: string
+  checkInDate?: Date,
+  checkOutDate?: Date
 ) {
-  const now = new Date();
-  const nowISO = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-  const lastDayOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-  const lastDayOfNextMonthISO = new Date(lastDayOfNextMonth.getTime() - (lastDayOfNextMonth.getTimezoneOffset() * 60000))
-    .toISOString().split('T')[0];
+  const today = new Date();
+  const lastDayOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
+  let checkInDefaultDate = null;
+  let checkOutDefaultDate = null;
+
+  if (checkInDate == null && checkOutDate == null) {
+    checkInDefaultDate = new Date();
+    checkOutDefaultDate = new Date();
+    checkInDefaultDate.setDate(today.getDate() + 1);
+    checkOutDefaultDate.setDate(checkInDefaultDate.getDate() + 2);
+  } else if (checkOutDate == null) {
+    checkOutDefaultDate = new Date();
+    checkOutDefaultDate.setDate(checkInDate.getDate() + 2);
+  }
+
+  const min = today.toISOString().split('T')[0];
+  const max = lastDayOfNextMonth.toISOString().split('T')[0];
+  const checkInValue = checkInDate ? checkInDate.toISOString().split('T')[0] : checkInDefaultDate.toISOString().split('T')[0];
+  const checkOutValue = checkOutDate ? checkOutDate.toISOString().split('T')[0] : checkOutDefaultDate.toISOString().split('T')[0];
 
   renderBlock(
     'search-form-block',
@@ -29,11 +43,11 @@ export function renderSearchFormBlock(
         <div class="row">
           <div>
             <label for="check-in-date">Дата заезда</label>
-            <input id="check-in-date" type="date" value="${checkInDate}" min="${nowISO}" max="${lastDayOfNextMonthISO}" name="checkin" />
+            <input id="check-in-date" type="date" value="${checkInValue}" min="${min}" max="${max}" name="checkin" />
           </div>
           <div>
             <label for="check-out-date">Дата выезда</label>
-            <input id="check-out-date" type="date" value="${checkOutDate}" min="${nowISO}" max="${lastDayOfNextMonthISO}" name="checkout" />
+            <input id="check-out-date" type="date" value="${checkOutValue}" min="${min}" max="${max}" name="checkout" />
           </div>
           <div>
             <label for="max-price">Макс. цена суток</label>
