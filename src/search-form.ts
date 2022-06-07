@@ -1,4 +1,8 @@
 import { renderBlock } from './lib.js';
+import { search, showSearchResult } from './helpers.js';
+import { SearchFormData } from './search-form-data.js';
+import { FavoritePlace } from './types.js';
+import { renderUserBlock } from './user.js';
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -73,4 +77,67 @@ export function renderSearchFormBlock(
     </form>
     `
   );
+}
+
+export function handleSubmit(e: Event) {
+  e.preventDefault();
+
+  const sendData: SearchFormData = {
+    city: (<HTMLInputElement>document.getElementById('city')).value,
+    checkInDate: new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
+    checkOutDate: new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
+    maxPrice: Number((<HTMLInputElement>document.getElementById('max-price')).value)
+  }
+
+  search(sendData, showSearchResult);
+}
+
+export function toggleFavoriteItem(e: Event): void {
+  if (!(e.currentTarget instanceof HTMLDivElement)) {
+    return;
+  }
+
+  const id = Number(e.currentTarget.dataset.id);
+  const name = e.currentTarget.dataset.name;
+  const image = e.currentTarget.nextElementSibling.getAttribute('src');
+  const currentPlace: FavoritePlace = {
+    id,
+    name,
+    image
+  }
+  const localStorageItem = localStorage.getItem('favoriteItems');
+
+  if (localStorageItem) {
+    const favoriteItems: unknown = JSON.parse(localStorageItem);
+
+    if (Array.isArray(favoriteItems)) {
+      const favoriteItem = favoriteItems.find((item) => item.id === id);
+
+      if (favoriteItem) {
+        removeFavoriteItemFromStorage(favoriteItem, favoriteItems);
+      } else {
+        addFavoriteItemToStorage(currentPlace, favoriteItems);
+      }
+    }
+  } else {
+    localStorage.setItem('favoriteItems', JSON.stringify([currentPlace]));
+  }
+
+  renderUserBlock();
+}
+
+function removeFavoriteItemFromStorage(favoriteItem: FavoritePlace, favoriteItems: FavoritePlace[]): void {
+  const indexOfItem = favoriteItems.indexOf(favoriteItem);
+  favoriteItems.splice(indexOfItem, 1);
+
+  if (favoriteItems.length) {
+    localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
+  } else {
+    localStorage.removeItem('favoriteItems');
+  }
+}
+
+function addFavoriteItemToStorage(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
+  favoriteItems.push(currentPlace);
+  localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
 }

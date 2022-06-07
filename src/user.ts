@@ -1,8 +1,10 @@
+import { getFavoritesAmount } from './helpers.js';
 import { renderBlock } from './lib.js';
 
-export function renderUserBlock (userName: string, avatarUrl: string, favoriteItemsAmount?: number) {
-  const favoritesCaption = favoriteItemsAmount ? favoriteItemsAmount : 'ничего нет';
-  const hasFavoriteItems = favoriteItemsAmount ? true : false;
+export function renderUserBlock (userName = 'Wade Warren', avatarUrl = '/img/avatar.png') {
+  const favoriteItemsAmount = getFavoritesAmount('favoriteItems');
+  const favoritesCaption = favoriteItemsAmount || 'ничего нет';
+  const hasFavoriteItems = !!favoriteItemsAmount;
 
   renderBlock(
     'user-block',
