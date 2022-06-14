@@ -1,4 +1,5 @@
-import { renderBlock } from './lib.js';
+import { dateToUnixStamp } from './helpers.js';
+import { renderBlock, renderToast } from './lib.js';
 import { Place } from './place.js';
 
 export function renderSearchStubBlock() {
@@ -46,7 +47,7 @@ export function makeListContent(places: Place[]) {
             <div class="result-info--descr">${place.description}</div>
             <div class="result-info--footer">
               <div>
-                <button>Забронировать</button>
+                <button class="book-button" type="button" data-id="${place.id}">Забронировать</button>
               </div>
             </div>
           </div>
@@ -75,4 +76,37 @@ export function renderSearchResultsBlock(listContent: string) {
     ${listContent}
     `
   );
+}
+
+export async function bookPlace(event: Event): Promise<void> {
+  if (!(event.currentTarget instanceof HTMLButtonElement)) {
+    return;
+  }
+
+  const placeId = Number(event.currentTarget.dataset.id);
+  const checkInDate = new Date((<HTMLInputElement>document.getElementById('check-in-date')).value);
+  const checkOutDate = new Date((<HTMLInputElement>document.getElementById('check-out-date')).value);
+
+  const url = `http://localhost:3030/places/${placeId}?` +
+  `checkInDate=${dateToUnixStamp(checkInDate)}&` +
+  `checkOutDate=${dateToUnixStamp(checkOutDate)}&`
+
+  try {
+    const response = await fetch(url, {method: 'PATCH'});
+    const result = await response.json();
+
+    if (response.status === 200) {
+      renderToast(
+        { text: 'Отель успешно забронирован.', type: 'success' },
+        { name: 'ОК!', handler: () => { console.log(result.bookedDates) } }
+      );
+    } else {
+      renderToast(
+        { text: 'Не получилось забронировать отель. Попробуйте позже', type: 'error' },
+        { name: 'Понял', handler: () => { console.log(result.message) } }
+      );
+    }
+  } catch (error) {
+    console.error(error);
+  }
 }

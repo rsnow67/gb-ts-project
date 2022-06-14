@@ -1,8 +1,15 @@
 import { renderBlock } from './lib.js';
-import { search, showSearchResult } from './helpers.js';
+import { dateToUnixStamp } from './helpers.js';
 import { SearchFormData } from './search-form-data.js';
+import { searchCallback } from './search-callback.js'
 import { FavoritePlace } from './types.js';
 import { renderUserBlock } from './user.js';
+import { 
+  bookPlace,
+  makeListContent, 
+  renderEmptyOrErrorSearchBlock, 
+  renderSearchResultsBlock 
+} from './search-results.js';
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -91,6 +98,69 @@ export function handleSubmit(e: Event) {
 
   search(sendData, showSearchResult);
 }
+
+export async function search(data: SearchFormData, callback: searchCallback): Promise<void> {
+  let url = 'http://localhost:3030/places?' +
+    `checkInDate=${dateToUnixStamp(data.checkInDate)}&` +
+    `checkOutDate=${dateToUnixStamp(data.checkOutDate)}&` +
+    'coordinates=59.9386,30.3141'
+
+  if (data.maxPrice != null) {
+    url += `&maxPrice=${data.maxPrice}`;
+  }
+
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (response.status === 200) {
+      if (result.length) {
+        callback(null, result);
+      } else {
+        callback('Ничего не найдено. Попробуйте изменить параметры поиска.');
+      }
+    } else {
+      callback(result.message);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export const showSearchResult: searchCallback = (error, result): void => {
+  if (error == null && result != null) {
+    removeListItemsListeners();
+    renderSearchResultsBlock(makeListContent(result));
+    addListItemsListeners();
+  } else {
+    renderEmptyOrErrorSearchBlock(error);
+  }
+}
+
+const addListItemsListeners = (): void => {
+  const addToFavoritesButtons = document.querySelectorAll('.favorites');
+  const bookButtons = document.querySelectorAll('.book-button');
+
+  addToFavoritesButtons.forEach((button) => {
+    button.addEventListener('click', toggleFavoriteItem);
+  });
+  bookButtons.forEach((button) => {
+    button.addEventListener('click', bookPlace);
+  });
+} 
+
+const removeListItemsListeners = (): void => {
+  const addToFavoritesButtons = document.querySelectorAll('.favorites');
+  const bookButtons = document.querySelectorAll('.book-button');
+
+  addToFavoritesButtons.forEach((button) => {
+    button.removeEventListener('click', toggleFavoriteItem);
+  });
+  bookButtons.forEach((button) => {
+    button.removeEventListener('click', bookPlace);
+  });
+} 
+
 
 export function toggleFavoriteItem(e: Event): void {
   if (!(e.currentTarget instanceof HTMLDivElement)) {
