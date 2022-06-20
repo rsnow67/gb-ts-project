@@ -1,6 +1,7 @@
 import { dateToUnixStamp } from './helpers.js';
 import { renderBlock, renderToast } from './lib.js';
 import { Place } from './place.js';
+import { warningTimerId } from './search-form.js';
 
 export function renderSearchStubBlock() {
   renderBlock(
@@ -100,6 +101,7 @@ export async function bookPlace(event: Event): Promise<void> {
         { text: 'Отель успешно забронирован.', type: 'success' },
         { name: 'ОК!', handler: () => { console.log(result.bookedDates) } }
       );
+      clearTimeout(warningTimerId);
     } else {
       renderToast(
         { text: 'Не получилось забронировать отель. Попробуйте позже', type: 'error' },

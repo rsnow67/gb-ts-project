@@ -120,6 +120,11 @@ button {
     color: #fff;
     cursor: pointer;
 }
+
+button:disabled {
+    cursor: not-allowed;
+}
+
 .results {
     margin-top: 20px;
 } 

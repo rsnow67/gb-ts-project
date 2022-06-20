@@ -1,4 +1,7 @@
-import { renderBlock } from './lib.js';
+import { 
+  renderBlock, 
+  renderToast 
+} from './lib.js';
 import { dateToUnixStamp } from './helpers.js';
 import { SearchFormData } from './search-form-data.js';
 import { searchCallback } from './search-callback.js'
@@ -10,6 +13,8 @@ import {
   renderEmptyOrErrorSearchBlock, 
   renderSearchResultsBlock 
 } from './search-results.js';
+
+export let warningTimerId: ReturnType<typeof setTimeout> = null;
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -132,6 +137,7 @@ export const showSearchResult: searchCallback = (error, result): void => {
     removeListItemsListeners();
     renderSearchResultsBlock(makeListContent(result));
     addListItemsListeners();
+    warningTimerId = setTimeout(showWarningMessage, 30000);
   } else {
     renderEmptyOrErrorSearchBlock(error);
   }
@@ -161,6 +167,25 @@ const removeListItemsListeners = (): void => {
   });
 } 
 
+const showWarningMessage = (): void => {
+  const bookButtons = document.querySelectorAll('.book-button');
+
+  disableButtons(bookButtons);
+  renderToast(
+    { text: 'Данные устарели. Обновите результаты поиска', type: 'error' },
+    { name: 'ОК!', handler: () => console.log('Search again.') }
+  );
+}
+
+const disableButtons = (buttons: NodeListOf<Element>): void => {
+  buttons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    button.disabled = true;
+  })
+}
 
 export function toggleFavoriteItem(e: Event): void {
   if (!(e.currentTarget instanceof HTMLDivElement)) {
