@@ -15,4 +15,3 @@ window.addEventListener('DOMContentLoaded', () => {
 
 const form = document.getElementById('search-form-block');
 form.addEventListener('submit', handleSubmit);
-
