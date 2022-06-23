@@ -12,21 +12,20 @@ export interface Flat {
   photos: string[],
   coordinates: number[],
   bookedDates: number[],
-  price: number,
-
+  totalPrice: number,
 }
 
 export interface SearchParameters {
   city: string,
   checkInDate: Date,
-  checkOutdate: Date,
+  checkOutDate: Date,
   priceLimit?: number,
 }
 
 export class FlatRentSdk {
   get(id: string): Promise<Flat | null>;
-  search(parameters: SearchParameters): Flat[];
-  book(flatId: number, checkInDate: Date, checkOutDate: Date): number;
+  search(parameters: SearchParameters): Promise<Flat[]>;
+  book(flatId: string, checkInDate: Date, checkOutDate: Date): Promise<number | Error>;
   private _assertDatesAreCorrect(checkInDate: Date, checkOutDate: Date): void;
   private _resetTime(date: Date): void;
   private _calculateDifferenceInDays(startDate: Date, endDate: Date): number;

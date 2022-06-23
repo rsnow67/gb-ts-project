@@ -1,18 +1,20 @@
-import { 
-  renderBlock, 
-  renderToast 
+import {
+  renderBlock,
+  renderToast
 } from './lib.js';
 import { dateToUnixStamp } from './helpers.js';
 import { SearchFormData } from './search-form-data.js';
 import { searchCallback } from './search-callback.js'
-import { FavoritePlace } from './types.js';
 import { renderUserBlock } from './user.js';
-import { 
+import {
   bookPlace,
-  makeListContent, 
-  renderEmptyOrErrorSearchBlock, 
-  renderSearchResultsBlock 
+  makeListContent,
+  renderEmptyOrErrorSearchBlock,
+  renderSearchResultsBlock
 } from './search-results.js';
+import { sdk } from './index.js';
+import { SearchParameters } from './flat-rent-sdk.js';
+import { Place, FavoritePlace } from './place.js';
 
 export let warningTimerId: ReturnType<typeof setTimeout> = null;
 
@@ -101,10 +103,40 @@ export function handleSubmit(e: Event) {
     maxPrice: Number((<HTMLInputElement>document.getElementById('max-price')).value)
   }
 
-  search(sendData, showSearchResult);
+  const homyData = search(sendData);
+
+  const parameters: SearchParameters = {
+    city: (<HTMLInputElement>document.getElementById('city')).value,
+    checkInDate: new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
+    checkOutDate: new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
+    priceLimit: Number((<HTMLInputElement>document.getElementById('max-price')).value)
+  }
+
+  const sdkData = sdk.search(parameters);
+
+  Promise.all([homyData, sdkData])
+    .then(values => {
+      if (!values[0] && !values[1].length) {
+        throw new Error('Не найдено результатов, подходящих условиям.');
+      }
+
+      if (!values[1].length) {
+        console.error('Нет подходящих отелей из FlatRentSDK.');
+      }
+
+      const data = {
+        homyData: values[0],
+        sdkData: values[1]
+      }
+
+      showSearchResult(null, data);
+    })
+    .catch(error => {
+      showSearchResult(error);
+    });
 }
 
-export async function search(data: SearchFormData, callback: searchCallback): Promise<void> {
+export async function search(data: SearchFormData): Promise<Place[]> {
   let url = 'http://localhost:3030/places?' +
     `checkInDate=${dateToUnixStamp(data.checkInDate)}&` +
     `checkOutDate=${dateToUnixStamp(data.checkOutDate)}&` +
@@ -120,12 +152,12 @@ export async function search(data: SearchFormData, callback: searchCallback): Pr
 
     if (response.status === 200) {
       if (result.length) {
-        callback(null, result);
+        return result;
       } else {
-        callback('Ничего не найдено. Попробуйте изменить параметры поиска.');
+        throw new Error('Нет подходящих отелей из Homy API.');
       }
     } else {
-      callback(result.message);
+      throw new Error(result.message);
     }
   } catch (error) {
     console.error(error);
@@ -134,38 +166,65 @@ export async function search(data: SearchFormData, callback: searchCallback): Pr
 
 export const showSearchResult: searchCallback = (error, result): void => {
   if (error == null && result != null) {
-    removeListItemsListeners();
-    renderSearchResultsBlock(makeListContent(result));
-    addListItemsListeners();
-    warningTimerId = setTimeout(showWarningMessage, 30000);
+    const {
+      homyData,
+      sdkData
+    } = result;
+
+    const homyDataList = homyData ? makeListContent(homyData, 'places') : '';
+    const sdkDataList = sdkData ? makeListContent(sdkData, 'flats') : '';
+    const listContent = homyDataList + sdkDataList;
+
+    if (!listContent) {
+      return;
+    }
+
+    renderSearchResultsBlock(listContent);
+
+    const homyBookButtons = document.querySelectorAll('.places .book-button');
+
+    homyBookButtons.forEach((button) => {
+      button.addEventListener('click', bookPlace);
+    });
+
+    const sdkBookButtons = document.querySelectorAll('.flats .book-button');
+
+    sdkBookButtons.forEach((button: HTMLButtonElement) => {
+      button.addEventListener('click', () => {
+        return sdk.book(
+          button.dataset.id,
+          new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
+          new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
+        ).then(() => {
+          renderToast(
+            { text: 'Отель успешно забронирован.', type: 'success' },
+            { name: 'ОК!', handler: () => { console.log('Успех') } }
+          );
+        })
+          .catch(error => {
+            renderToast(
+              { text: 'Не получилось забронировать отель. Попробуйте позже', type: 'error' },
+              { name: 'Понял', handler: () => { console.error(error) } }
+            );
+          });
+      });
+    });
+
+    addtoggleFavoriteListeners();
+
+    warningTimerId = setTimeout(showWarningMessage, 300000);
   } else {
-    renderEmptyOrErrorSearchBlock(error);
+    renderEmptyOrErrorSearchBlock(error.message);
   }
 }
 
-const addListItemsListeners = (): void => {
+const addtoggleFavoriteListeners = (): void => {
   const addToFavoritesButtons = document.querySelectorAll('.favorites');
-  const bookButtons = document.querySelectorAll('.book-button');
 
   addToFavoritesButtons.forEach((button) => {
     button.addEventListener('click', toggleFavoriteItem);
   });
-  bookButtons.forEach((button) => {
-    button.addEventListener('click', bookPlace);
-  });
-} 
-
-const removeListItemsListeners = (): void => {
-  const addToFavoritesButtons = document.querySelectorAll('.favorites');
-  const bookButtons = document.querySelectorAll('.book-button');
-
-  addToFavoritesButtons.forEach((button) => {
-    button.removeEventListener('click', toggleFavoriteItem);
-  });
-  bookButtons.forEach((button) => {
-    button.removeEventListener('click', bookPlace);
-  });
-} 
+}
 
 const showWarningMessage = (): void => {
   const bookButtons = document.querySelectorAll('.book-button');
@@ -192,8 +251,8 @@ export function toggleFavoriteItem(e: Event): void {
     return;
   }
 
-  const id = Number(e.currentTarget.dataset.id);
-  const name = e.currentTarget.dataset.name;
+  const id = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name || e.currentTarget.dataset.title;
   const image = e.currentTarget.nextElementSibling.getAttribute('src');
   const currentPlace: FavoritePlace = {
     id,

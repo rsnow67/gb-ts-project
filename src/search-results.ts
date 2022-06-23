@@ -1,3 +1,4 @@
+import { Flat } from './flat-rent-sdk.js';
 import { dateToUnixStamp } from './helpers.js';
 import { renderBlock, renderToast } from './lib.js';
 import { Place } from './place.js';
@@ -15,7 +16,7 @@ export function renderSearchStubBlock() {
   );
 }
 
-export function renderEmptyOrErrorSearchBlock(reasonMessage: string) {
+export function renderEmptyOrErrorSearchBlock(reasonMessage: string): void {
   renderBlock(
     'search-results-block',
     `
@@ -27,36 +28,46 @@ export function renderEmptyOrErrorSearchBlock(reasonMessage: string) {
   );
 }
 
-export function makeListContent(places: Place[]) {
+export function makeListContent(places: Place[] | Flat[], listClassName: string): string {
   const items = [];
 
   places.forEach((place) => {
+    const id = place.id;
+    const name = place.name || place.title;
+    const image = place.image || place.photos[0];
+    const price = place.price || place.totalPrice;
+    const mapInfo = place.remoteness ?
+      `${place.remoteness} км от вас`
+      :
+      `Координаты: ${place.coordinates[0]}, ${place.coordinates[1]}`;
+    const description = place.description || place.details;
+
     items.push(
       `
-      <li class="result" data-id="${place.id}">
-        <div class="result-container">
-          <div class="result-img-container">
-            <div class="favorites active" data-id="${place.id}" data-name="${place.name}" data-image="${place.image}"></div>
-            <img class="result-img" src="${place.image}" alt="${place.name} hotel" width="225" height="225">
-          </div>	
-          <div class="result-info">
-            <div class="result-info--header">
-              <p>${place.name}</p>
-              <p class="price">${place.price}&#8381;</p>
-            </div>
-            <div class="result-info--map"><i class="map-icon"></i>${place.remoteness} км от вас</div>
-            <div class="result-info--descr">${place.description}</div>
-            <div class="result-info--footer">
-              <div>
-                <button class="book-button" type="button" data-id="${place.id}">Забронировать</button>
+        <li class="result" data-id="${id}">
+          <div class="result-container">
+            <div class="result-img-container">
+              <div class="favorites active" data-id="${id}" data-name="${name}" data-image="${image}"></div>
+              <img class="result-img" src="${image}" alt="${name} hotel" width="225" height="225">
+            </div>	
+            <div class="result-info">
+              <div class="result-info--header">
+                <p>${name}</p>
+                <p class="price">${price}&#8381;</p>
+              </div>
+              <div class="result-info--map"><i class="map-icon"></i>${mapInfo}</div>
+              <div class="result-info--descr">${description}</div>
+              <div class="result-info--footer">
+                <div>
+                  <button class="book-button" type="button" data-id="${id}">Забронировать</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </li>`);
+        </li>`);
   });
 
-  return '<ul class="results-list">' + items.join('') + '\n</ul>';
+  return `<ul class="results-list ${listClassName}">` + items.join('') + '\n</ul>';
 }
 
 export function renderSearchResultsBlock(listContent: string) {
@@ -89,11 +100,11 @@ export async function bookPlace(event: Event): Promise<void> {
   const checkOutDate = new Date((<HTMLInputElement>document.getElementById('check-out-date')).value);
 
   const url = `http://localhost:3030/places/${placeId}?` +
-  `checkInDate=${dateToUnixStamp(checkInDate)}&` +
-  `checkOutDate=${dateToUnixStamp(checkOutDate)}&`
+    `checkInDate=${dateToUnixStamp(checkInDate)}&` +
+    `checkOutDate=${dateToUnixStamp(checkOutDate)}&`
 
   try {
-    const response = await fetch(url, {method: 'PATCH'});
+    const response = await fetch(url, { method: 'PATCH' });
     const result = await response.json();
 
     if (response.status === 200) {

@@ -1,5 +1,6 @@
-import { Place } from './place.js';
+import { Flat } from './flat-rent-sdk.js';
+import { Place, searchResult } from './place.js';
 
 export interface searchCallback {
-  (error?: string, places?: Place[]): void
+  (error?: Error, places?: searchResult): void
 }
