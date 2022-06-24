@@ -120,6 +120,11 @@ button {
     color: #fff;
     cursor: pointer;
 }
+
+button:disabled {
+    cursor: not-allowed;
+}
+
 .results {
     margin-top: 20px;
 } 
@@ -187,6 +192,7 @@ ul.results-list {
 }
 .result-info {
     position: relative;
+    width: 100%;
 }
 .result-info--header {
     display: flex;

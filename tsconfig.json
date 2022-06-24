@@ -5,9 +5,10 @@
     "module": "es2015",
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "allowJs": true
   },
-  "files": [
-    "src/index.ts"
-  ]
+  "include": [
+    "src/**/*"
+    ]
 }

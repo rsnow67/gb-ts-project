@@ -7,3 +7,9 @@ export interface Place {
   bookedDates: number[],
   price: number
 }
+
+export interface FavoritePlace {
+  id: string,
+  name: string,
+  image: string
+}

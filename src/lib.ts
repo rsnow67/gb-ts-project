@@ -1,9 +1,12 @@
-export function renderBlock(elementId: string, html: string) {
+import { ToastMessage } from './toast-message.js';
+import { ToastAction } from './toast-action.js';
+
+export function renderBlock(elementId: string, html: string): void {
   const element = document.getElementById(elementId);
   element.innerHTML = html;
 }
 
-export function renderToast(message, action) {
+export function renderToast(message: ToastMessage, action: ToastAction) {
   let messageText = '';
 
   if (message != null) {

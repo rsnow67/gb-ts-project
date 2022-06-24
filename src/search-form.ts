@@ -1,8 +1,22 @@
-import { renderBlock } from './lib.js';
-import { search, showSearchResult } from './helpers.js';
+import {
+  renderBlock,
+  renderToast
+} from './lib.js';
+import { dateToUnixStamp } from './helpers.js';
 import { SearchFormData } from './search-form-data.js';
-import { FavoritePlace } from './types.js';
 import { renderUserBlock } from './user.js';
+import {
+  bookPlace,
+  makeFlatListContent,
+  makePlaceListContent,
+  renderEmptyOrErrorSearchBlock,
+  renderSearchResultsBlock
+} from './search-results.js';
+import { sdk } from './index.js';
+import { SearchParameters } from './flat-rent-sdk.js';
+import { Place, FavoritePlace } from './place.js';
+
+export let warningTimerId: ReturnType<typeof setTimeout> = null;
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -79,26 +93,147 @@ export function renderSearchFormBlock(
   );
 }
 
-export function handleSubmit(e: Event) {
+export async function handleSubmit(e: Event) {
   e.preventDefault();
-
+  const city = (<HTMLInputElement>document.getElementById('city')).value;
+  const checkInDate = new Date((<HTMLInputElement>document.getElementById('check-in-date')).value);
+  const checkOutDate = new Date((<HTMLInputElement>document.getElementById('check-out-date')).value);
+  const price = Number((<HTMLInputElement>document.getElementById('max-price')).value);
   const sendData: SearchFormData = {
-    city: (<HTMLInputElement>document.getElementById('city')).value,
-    checkInDate: new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
-    checkOutDate: new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
-    maxPrice: Number((<HTMLInputElement>document.getElementById('max-price')).value)
+    city,
+    checkInDate,
+    checkOutDate,
+    maxPrice: price,
+  }
+  const parameters: SearchParameters = {
+    city,
+    checkInDate,
+    checkOutDate,
+    priceLimit: price
+  }
+  const homyData = await search(sendData);
+  const sdkData = await sdk.search(parameters);
+  const homyContent = homyData && homyData.length ?
+    makePlaceListContent(homyData)
+    :
+    '';
+  const sdkContent = sdkData && sdkData.length ?
+    makeFlatListContent(sdkData)
+    :
+    '';
+
+  if (!homyContent && !sdkContent) {
+    renderEmptyOrErrorSearchBlock('Не найдено подходящих результатов');
+    return;
   }
 
-  search(sendData, showSearchResult);
+  const resultListContent = '<ul class="results-list">' + homyContent + sdkContent + '\n</ul>';
+  renderSearchResultsBlock(resultListContent);
+
+  if (homyContent) {
+    addHomyBookButtonsListeners();
+  }
+
+  if (sdkContent) {
+    addSdkBookButtonsListeners();
+  }
+
+  addtoggleFavoriteListeners();
+  warningTimerId = setTimeout(showWarningMessage, 300000);
 }
 
-export function toggleFavoriteItem(e: Event): void {
+export async function search(data: SearchFormData): Promise<Place[]> {
+  let url = 'http://localhost:3030/places?' +
+    `checkInDate=${dateToUnixStamp(data.checkInDate)}&` +
+    `checkOutDate=${dateToUnixStamp(data.checkOutDate)}&` +
+    'coordinates=59.9386,30.3141'
+
+  if (data.maxPrice != null) {
+    url += `&maxPrice=${data.maxPrice}`;
+  }
+
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (response.status === 200) {
+      if (result.length) {
+        return result;
+      } else {
+        throw new Error('Нет подходящих отелей из Homy API.');
+      }
+    } else {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const addHomyBookButtonsListeners = (): void => {
+  const homyBookButtons = document.querySelectorAll('.homydata .book-button');
+
+  homyBookButtons.forEach((button: HTMLButtonElement) => {
+    button.addEventListener('click', bookPlace);
+  });
+}
+
+const addSdkBookButtonsListeners = (): void => {
+  const sdkBookButtons = document.querySelectorAll('.sdkdata .book-button');
+
+  sdkBookButtons.forEach((button: HTMLButtonElement) => {
+    button.addEventListener('click', async () => {
+      try {
+        await sdk.book(
+          button.dataset.id,
+          new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
+          new Date((<HTMLInputElement>document.getElementById('check-out-date')).value));
+        renderToast(
+          { text: 'Отель успешно забронирован.', type: 'success' },
+          { name: 'ОК!', handler: () => { console.log('Успех'); } }
+        );
+        clearTimeout(warningTimerId);
+      } catch (error) {
+        renderToast(
+          { text: 'Не получилось забронировать отель. Попробуйте позже', type: 'error' },
+          { name: 'Понял', handler: () => { console.error(error); } }
+        );
+      }
+    })
+  });
+}
+
+const addtoggleFavoriteListeners = (): void => {
+  const addToFavoritesButtons = document.querySelectorAll('.favorites');
+
+  addToFavoritesButtons.forEach((button) => {
+    button.addEventListener('click', toggleFavorite);
+  });
+}
+
+const showWarningMessage = (): void => {
+  const bookButtons = document.querySelectorAll('.book-button');
+
+  disableButtons(bookButtons);
+  renderToast(
+    { text: 'Данные устарели. Обновите результаты поиска', type: 'error' },
+    { name: 'ОК!', handler: () => console.log('Search again.') }
+  );
+}
+
+const disableButtons = (buttons: NodeListOf<Element>): void => {
+  buttons.forEach((button: HTMLButtonElement) => {
+    button.disabled = true;
+  })
+}
+
+export function toggleFavorite(e: Event): void {
   if (!(e.currentTarget instanceof HTMLDivElement)) {
     return;
   }
 
-  const id = Number(e.currentTarget.dataset.id);
-  const name = e.currentTarget.dataset.name;
+  const id = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name || e.currentTarget.dataset.title;
   const image = e.currentTarget.nextElementSibling.getAttribute('src');
   const currentPlace: FavoritePlace = {
     id,
@@ -111,12 +246,12 @@ export function toggleFavoriteItem(e: Event): void {
     const favoriteItems: unknown = JSON.parse(localStorageItem);
 
     if (Array.isArray(favoriteItems)) {
-      const favoriteItem = favoriteItems.find((item) => item.id === id);
+      const favoriteItem = favoriteItems.find((item) => item.id === currentPlace.id);
 
       if (favoriteItem) {
-        removeFavoriteItemFromStorage(favoriteItem, favoriteItems);
+        removeFromFavorites(currentPlace, favoriteItems);
       } else {
-        addFavoriteItemToStorage(currentPlace, favoriteItems);
+        addToFavorites(currentPlace, favoriteItems);
       }
     }
   } else {
@@ -126,8 +261,8 @@ export function toggleFavoriteItem(e: Event): void {
   renderUserBlock();
 }
 
-function removeFavoriteItemFromStorage(favoriteItem: FavoritePlace, favoriteItems: FavoritePlace[]): void {
-  const indexOfItem = favoriteItems.indexOf(favoriteItem);
+function removeFromFavorites(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
+  const indexOfItem = favoriteItems.indexOf(currentPlace);
   favoriteItems.splice(indexOfItem, 1);
 
   if (favoriteItems.length) {
@@ -137,7 +272,7 @@ function removeFavoriteItemFromStorage(favoriteItem: FavoritePlace, favoriteItem
   }
 }
 
-function addFavoriteItemToStorage(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
+function addToFavorites(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
   favoriteItems.push(currentPlace);
   localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
 }
