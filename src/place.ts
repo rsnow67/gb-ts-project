@@ -1,5 +1,3 @@
-import { Flat } from './flat-rent-sdk.js';
-
 export interface Place {
   id: number,
   name: string,
@@ -8,11 +6,6 @@ export interface Place {
   remoteness: number,
   bookedDates: number[],
   price: number
-}
-
-export interface searchResult {
-  homyData: Place[],
-  sdkData: Flat[]
 }
 
 export interface FavoritePlace {

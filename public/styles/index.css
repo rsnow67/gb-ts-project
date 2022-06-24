@@ -192,6 +192,7 @@ ul.results-list {
 }
 .result-info {
     position: relative;
+    width: 100%;
 }
 .result-info--header {
     display: flex;

@@ -4,11 +4,11 @@ import {
 } from './lib.js';
 import { dateToUnixStamp } from './helpers.js';
 import { SearchFormData } from './search-form-data.js';
-import { searchCallback } from './search-callback.js'
 import { renderUserBlock } from './user.js';
 import {
   bookPlace,
-  makeListContent,
+  makeFlatListContent,
+  makePlaceListContent,
   renderEmptyOrErrorSearchBlock,
   renderSearchResultsBlock
 } from './search-results.js';
@@ -93,47 +93,53 @@ export function renderSearchFormBlock(
   );
 }
 
-export function handleSubmit(e: Event) {
+export async function handleSubmit(e: Event) {
   e.preventDefault();
-
+  const city = (<HTMLInputElement>document.getElementById('city')).value;
+  const checkInDate = new Date((<HTMLInputElement>document.getElementById('check-in-date')).value);
+  const checkOutDate = new Date((<HTMLInputElement>document.getElementById('check-out-date')).value);
+  const price = Number((<HTMLInputElement>document.getElementById('max-price')).value);
   const sendData: SearchFormData = {
-    city: (<HTMLInputElement>document.getElementById('city')).value,
-    checkInDate: new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
-    checkOutDate: new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
-    maxPrice: Number((<HTMLInputElement>document.getElementById('max-price')).value)
+    city,
+    checkInDate,
+    checkOutDate,
+    maxPrice: price,
   }
-
-  const homyData = search(sendData);
-
   const parameters: SearchParameters = {
-    city: (<HTMLInputElement>document.getElementById('city')).value,
-    checkInDate: new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
-    checkOutDate: new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
-    priceLimit: Number((<HTMLInputElement>document.getElementById('max-price')).value)
+    city,
+    checkInDate,
+    checkOutDate,
+    priceLimit: price
+  }
+  const homyData = await search(sendData);
+  const sdkData = await sdk.search(parameters);
+  const homyContent = homyData && homyData.length ?
+    makePlaceListContent(homyData)
+    :
+    '';
+  const sdkContent = sdkData && sdkData.length ?
+    makeFlatListContent(sdkData)
+    :
+    '';
+
+  if (!homyContent && !sdkContent) {
+    renderEmptyOrErrorSearchBlock('Не найдено подходящих результатов');
+    return;
   }
 
-  const sdkData = sdk.search(parameters);
+  const resultListContent = '<ul class="results-list">' + homyContent + sdkContent + '\n</ul>';
+  renderSearchResultsBlock(resultListContent);
 
-  Promise.all([homyData, sdkData])
-    .then(values => {
-      if (!values[0] && !values[1].length) {
-        throw new Error('Не найдено результатов, подходящих условиям.');
-      }
+  if (homyContent) {
+    addHomyBookButtonsListeners();
+  }
 
-      if (!values[1].length) {
-        console.error('Нет подходящих отелей из FlatRentSDK.');
-      }
+  if (sdkContent) {
+    addSdkBookButtonsListeners();
+  }
 
-      const data = {
-        homyData: values[0],
-        sdkData: values[1]
-      }
-
-      showSearchResult(null, data);
-    })
-    .catch(error => {
-      showSearchResult(error);
-    });
+  addtoggleFavoriteListeners();
+  warningTimerId = setTimeout(showWarningMessage, 300000);
 }
 
 export async function search(data: SearchFormData): Promise<Place[]> {
@@ -164,65 +170,44 @@ export async function search(data: SearchFormData): Promise<Place[]> {
   }
 }
 
-export const showSearchResult: searchCallback = (error, result): void => {
-  if (error == null && result != null) {
-    const {
-      homyData,
-      sdkData
-    } = result;
+const addHomyBookButtonsListeners = (): void => {
+  const homyBookButtons = document.querySelectorAll('.homydata .book-button');
 
-    const homyDataList = homyData ? makeListContent(homyData, 'places') : '';
-    const sdkDataList = sdkData ? makeListContent(sdkData, 'flats') : '';
-    const listContent = homyDataList + sdkDataList;
+  homyBookButtons.forEach((button: HTMLButtonElement) => {
+    button.addEventListener('click', bookPlace);
+  });
+}
 
-    if (!listContent) {
-      return;
-    }
+const addSdkBookButtonsListeners = (): void => {
+  const sdkBookButtons = document.querySelectorAll('.sdkdata .book-button');
 
-    renderSearchResultsBlock(listContent);
-
-    const homyBookButtons = document.querySelectorAll('.places .book-button');
-
-    homyBookButtons.forEach((button) => {
-      button.addEventListener('click', bookPlace);
-    });
-
-    const sdkBookButtons = document.querySelectorAll('.flats .book-button');
-
-    sdkBookButtons.forEach((button: HTMLButtonElement) => {
-      button.addEventListener('click', () => {
-        return sdk.book(
+  sdkBookButtons.forEach((button: HTMLButtonElement) => {
+    button.addEventListener('click', async () => {
+      try {
+        await sdk.book(
           button.dataset.id,
           new Date((<HTMLInputElement>document.getElementById('check-in-date')).value),
-          new Date((<HTMLInputElement>document.getElementById('check-out-date')).value),
-        ).then(() => {
-          renderToast(
-            { text: 'Отель успешно забронирован.', type: 'success' },
-            { name: 'ОК!', handler: () => { console.log('Успех') } }
-          );
-        })
-          .catch(error => {
-            renderToast(
-              { text: 'Не получилось забронировать отель. Попробуйте позже', type: 'error' },
-              { name: 'Понял', handler: () => { console.error(error) } }
-            );
-          });
-      });
-    });
-
-    addtoggleFavoriteListeners();
-
-    warningTimerId = setTimeout(showWarningMessage, 300000);
-  } else {
-    renderEmptyOrErrorSearchBlock(error.message);
-  }
+          new Date((<HTMLInputElement>document.getElementById('check-out-date')).value));
+        renderToast(
+          { text: 'Отель успешно забронирован.', type: 'success' },
+          { name: 'ОК!', handler: () => { console.log('Успех'); } }
+        );
+        clearTimeout(warningTimerId);
+      } catch (error) {
+        renderToast(
+          { text: 'Не получилось забронировать отель. Попробуйте позже', type: 'error' },
+          { name: 'Понял', handler: () => { console.error(error); } }
+        );
+      }
+    })
+  });
 }
 
 const addtoggleFavoriteListeners = (): void => {
   const addToFavoritesButtons = document.querySelectorAll('.favorites');
 
   addToFavoritesButtons.forEach((button) => {
-    button.addEventListener('click', toggleFavoriteItem);
+    button.addEventListener('click', toggleFavorite);
   });
 }
 
@@ -237,16 +222,12 @@ const showWarningMessage = (): void => {
 }
 
 const disableButtons = (buttons: NodeListOf<Element>): void => {
-  buttons.forEach((button) => {
-    if (!(button instanceof HTMLButtonElement)) {
-      return;
-    }
-
+  buttons.forEach((button: HTMLButtonElement) => {
     button.disabled = true;
   })
 }
 
-export function toggleFavoriteItem(e: Event): void {
+export function toggleFavorite(e: Event): void {
   if (!(e.currentTarget instanceof HTMLDivElement)) {
     return;
   }
@@ -265,12 +246,12 @@ export function toggleFavoriteItem(e: Event): void {
     const favoriteItems: unknown = JSON.parse(localStorageItem);
 
     if (Array.isArray(favoriteItems)) {
-      const favoriteItem = favoriteItems.find((item) => item.id === id);
+      const favoriteItem = favoriteItems.find((item) => item.id === currentPlace.id);
 
       if (favoriteItem) {
-        removeFavoriteItemFromStorage(favoriteItem, favoriteItems);
+        removeFromFavorites(currentPlace, favoriteItems);
       } else {
-        addFavoriteItemToStorage(currentPlace, favoriteItems);
+        addToFavorites(currentPlace, favoriteItems);
       }
     }
   } else {
@@ -280,8 +261,8 @@ export function toggleFavoriteItem(e: Event): void {
   renderUserBlock();
 }
 
-function removeFavoriteItemFromStorage(favoriteItem: FavoritePlace, favoriteItems: FavoritePlace[]): void {
-  const indexOfItem = favoriteItems.indexOf(favoriteItem);
+function removeFromFavorites(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
+  const indexOfItem = favoriteItems.indexOf(currentPlace);
   favoriteItems.splice(indexOfItem, 1);
 
   if (favoriteItems.length) {
@@ -291,7 +272,7 @@ function removeFavoriteItemFromStorage(favoriteItem: FavoritePlace, favoriteItem
   }
 }
 
-function addFavoriteItemToStorage(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
+function addToFavorites(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
   favoriteItems.push(currentPlace);
   localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
 }

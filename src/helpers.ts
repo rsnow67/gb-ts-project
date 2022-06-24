@@ -26,7 +26,7 @@ export function getFavoritesAmount(key: string): number {
   if (Array.isArray(data)) {
     return data.length;
   }
-  
+
   return;
 }
 

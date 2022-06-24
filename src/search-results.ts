@@ -28,38 +28,26 @@ export function renderEmptyOrErrorSearchBlock(reasonMessage: string): void {
   );
 }
 
-export function makeListContent(places: Place[] | Flat[], listClassName: string): string {
-  const items = [];
-
-  places.forEach((place) => {
-    const id = place.id;
-    const name = place.name || place.title;
-    const image = place.image || place.photos[0];
-    const price = place.price || place.totalPrice;
-    const mapInfo = place.remoteness ?
-      `${place.remoteness} км от вас`
-      :
-      `Координаты: ${place.coordinates[0]}, ${place.coordinates[1]}`;
-    const description = place.description || place.details;
-
-    items.push(
+export function makePlaceListContent(places: Place[]): string {
+  const items = places.map((place) => {
+    return (
       `
-        <li class="result" data-id="${id}">
+        <li class="result homydata" data-id="${place.id}">
           <div class="result-container">
             <div class="result-img-container">
-              <div class="favorites active" data-id="${id}" data-name="${name}" data-image="${image}"></div>
-              <img class="result-img" src="${image}" alt="${name} hotel" width="225" height="225">
+              <div class="favorites active" data-id="${place.id}" data-name="${place.name}" data-image="${place.image}"></div>
+              <img class="result-img" src="${place.image}" alt="${place.name} hotel" width="225" height="225">
             </div>	
             <div class="result-info">
               <div class="result-info--header">
-                <p>${name}</p>
-                <p class="price">${price}&#8381;</p>
+                <p>${place.name}</p>
+                <p class="price">${place.price}&#8381;</p>
               </div>
-              <div class="result-info--map"><i class="map-icon"></i>${mapInfo}</div>
-              <div class="result-info--descr">${description}</div>
+              <div class="result-info--map"><i class="map-icon"></i>${place.remoteness}</div>
+              <div class="result-info--descr">${place.description}</div>
               <div class="result-info--footer">
                 <div>
-                  <button class="book-button" type="button" data-id="${id}">Забронировать</button>
+                  <button class="book-button" type="button" data-id="${place.id}">Забронировать</button>
                 </div>
               </div>
             </div>
@@ -67,7 +55,37 @@ export function makeListContent(places: Place[] | Flat[], listClassName: string)
         </li>`);
   });
 
-  return `<ul class="results-list ${listClassName}">` + items.join('') + '\n</ul>';
+  return items.join('');
+}
+
+export function makeFlatListContent(flats: Flat[]): string {
+  const items = flats.map((flat) => {
+    return (
+      `
+        <li class="result sdkdata" data-id="${flat.id}">
+          <div class="result-container">
+            <div class="result-img-container">
+              <div class="favorites active" data-id="${flat.id}" data-name="${flat.title}" data-image="${flat.photos[0]}"></div>
+              <img class="result-img" src="${flat.photos[0]}" alt="${flat.title} hotel" width="225" height="225">
+            </div>	
+            <div class="result-info">
+              <div class="result-info--header">
+                <p>${flat.title}</p>
+                <p class="price">${flat.totalPrice}&#8381;</p>
+              </div>
+              <div class="result-info--map"><i class="map-icon"></i>Координаты: ${flat.coordinates[0]}, ${flat.coordinates[1]}</div>
+              <div class="result-info--descr">${flat.details}</div>
+              <div class="result-info--footer">
+                <div>
+                  <button class="book-button" type="button" data-id="${flat.id}">Забронировать</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </li>`);
+  });
+
+  return items.join('');
 }
 
 export function renderSearchResultsBlock(listContent: string) {
