@@ -1,5 +1,5 @@
 import { Flat } from './flat-rent-sdk.js';
-import { dateToUnixStamp } from './helpers.js';
+import { DataHelper } from './helpers.js';
 import { renderBlock, renderToast } from './lib.js';
 import { Place } from './place.js';
 import { warningTimerId } from './search-form.js';
@@ -118,8 +118,8 @@ export async function bookPlace(event: Event): Promise<void> {
   const checkOutDate = new Date((<HTMLInputElement>document.getElementById('check-out-date')).value);
 
   const url = `http://localhost:3030/places/${placeId}?` +
-    `checkInDate=${dateToUnixStamp(checkInDate)}&` +
-    `checkOutDate=${dateToUnixStamp(checkOutDate)}&`
+    `checkInDate=${DataHelper.dateToUnixStamp(checkInDate)}&` +
+    `checkOutDate=${DataHelper.dateToUnixStamp(checkOutDate)}&`
 
   try {
     const response = await fetch(url, { method: 'PATCH' });

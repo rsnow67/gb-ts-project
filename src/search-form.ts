@@ -2,7 +2,7 @@ import {
   renderBlock,
   renderToast
 } from './lib.js';
-import { dateToUnixStamp } from './helpers.js';
+import { DataHelper } from './helpers.js';
 import { SearchFormData } from './search-form-data.js';
 import { renderUserBlock } from './user.js';
 import {
@@ -23,36 +23,18 @@ export function renderSearchFormBlock(
   checkOutDate?: Date
 ) {
   const today = new Date();
-  const lastDayOfNextMonth = new Date(today.getFullYear(), today.getMonth() + 2, 0);
-  let checkInDefaultDate = null;
-  let checkOutDefaultDate = null;
+  const lastDayOfNextMonth = DataHelper.getLastDayOfNextMonth(today);
+  const checkInDefaultDate = DataHelper.addDays(today, 1);
+  const checkOutDefautDate = checkInDate ? DataHelper.addDays(checkInDate, 2) : DataHelper.addDays(checkInDefaultDate, 2);
 
-  if (checkInDate == null && checkOutDate == null) {
-    checkInDefaultDate = new Date();
-    checkOutDefaultDate = new Date();
-    checkInDefaultDate.setDate(today.getDate() + 1);
-    checkOutDefaultDate.setDate(checkInDefaultDate.getDate() + 2);
-  } else if (checkOutDate == null) {
-    checkOutDefaultDate = new Date();
-    checkOutDefaultDate.setDate(checkInDate.getDate() + 2);
-  }
-
-  const min = new Date(today.getTime() - (today.getTimezoneOffset() * 60000))
-    .toISOString().split('T')[0];
-  const max = new Date(lastDayOfNextMonth.getTime() - (lastDayOfNextMonth.getTimezoneOffset() * 60000))
-    .toISOString().split('T')[0];
-  const checkInValue = checkInDate ?
-    new Date(checkInDate.getTime() - (checkInDate.getTimezoneOffset() * 60000))
-      .toISOString().split('T')[0]
-    :
-    new Date(checkInDefaultDate.getTime() - (checkInDefaultDate.getTimezoneOffset() * 60000))
-      .toISOString().split('T')[0];
-  const checkOutValue = checkOutDate ?
-    new Date(checkOutDate.getTime() - (checkOutDate.getTimezoneOffset() * 60000))
-      .toISOString().split('T')[0]
-    :
-    new Date(checkOutDefaultDate.getTime() - (checkOutDefaultDate.getTimezoneOffset() * 60000))
-      .toISOString().split('T')[0];
+  const minDateValue = DataHelper.toLocalISOString(today).split('T')[0];
+  const maxDateValue = DataHelper.toLocalISOString(lastDayOfNextMonth).split('T')[0];
+  const checkInDateValue = checkInDate && checkInDate <
+    lastDayOfNextMonth ? DataHelper.toLocalISOString(checkInDate).split('T')[0] :
+    DataHelper.toLocalISOString(checkInDefaultDate).split('T')[0];
+  const checkOutDateValue = checkOutDate && checkOutDate <
+    lastDayOfNextMonth ? DataHelper.toLocalISOString(checkOutDate).split('T')[0] :
+    DataHelper.toLocalISOString(checkOutDefautDate).split('T')[0];
 
   renderBlock(
     'search-form-block',
@@ -73,11 +55,11 @@ export function renderSearchFormBlock(
         <div class="row">
           <div>
             <label for="check-in-date">Дата заезда</label>
-            <input id="check-in-date" type="date" value="${checkInValue}" min="${min}" max="${max}" name="checkin" />
+            <input id="check-in-date" type="date" value="${checkInDateValue}" min="${minDateValue}" max="${maxDateValue}" name="checkin" />
           </div>
           <div>
             <label for="check-out-date">Дата выезда</label>
-            <input id="check-out-date" type="date" value="${checkOutValue}" min="${min}" max="${max}" name="checkout" />
+            <input id="check-out-date" type="date" value="${checkOutDateValue}" min="${minDateValue}" max="${maxDateValue}" name="checkout" />
           </div>
           <div>
             <label for="max-price">Макс. цена суток</label>
@@ -144,8 +126,8 @@ export async function handleSubmit(e: Event) {
 
 export async function search(data: SearchFormData): Promise<Place[]> {
   let url = 'http://localhost:3030/places?' +
-    `checkInDate=${dateToUnixStamp(data.checkInDate)}&` +
-    `checkOutDate=${dateToUnixStamp(data.checkOutDate)}&` +
+    `checkInDate=${DataHelper.dateToUnixStamp(data.checkInDate)}&` +
+    `checkOutDate=${DataHelper.dateToUnixStamp(data.checkOutDate)}&` +
     'coordinates=59.9386,30.3141'
 
   if (data.maxPrice != null) {
