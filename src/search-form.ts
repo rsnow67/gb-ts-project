@@ -1,25 +1,11 @@
-import {
-  renderBlock,
-  renderToast
-} from './lib.js';
+import { renderBlock } from './lib.js';
 import { DataHelper } from './helpers.js';
-import { renderUserBlock } from './user.js';
-import {
-  makeListContent,
-  renderEmptyOrErrorSearchBlock,
-  renderSearchResultsBlock
-} from './search-results.js';
-import { FavoritePlace } from './place.js';
+import { showSearchResult } from './search-results.js';
 import { SearchFilter } from './store/domain/search-filter.js';
-import {
-  flatRentSdkProvider,
-  homyProvider
-} from './index.js';
+import { flatRentSdkProvider, homyProvider } from './index.js';
 import { Place } from './store/domain/place.js';
-import { BookParams } from './store/domain/book-params.js';
-import { Provider } from './store/domain/provider.js';
 
-export let warningTimerId: ReturnType<typeof setTimeout> = null;
+export let allData: Place[] = null;
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -108,125 +94,7 @@ export async function handleSubmit(e: Event) {
   }
   const homyData = await homyProvider.search(sendData);
   const sdkData = await flatRentSdkProvider.search(params);
-  const allData: Place[] = [].concat(homyData, sdkData);
-  console.log(allData);
+  allData = [].concat(homyData, sdkData);
 
-  if (!allData) {
-    renderEmptyOrErrorSearchBlock('Не найдено подходящих результатов');
-    return;
-  }
-
-  const content = makeListContent(allData);
-  renderSearchResultsBlock(content);
-
-  if (homyData) {
-    const homyBookButtons = document.querySelectorAll('.homy .book-button');
-    addBookButtonsListeners(homyBookButtons, homyProvider);
-  }
-
-  if (sdkData) {
-    const sdkBookButtons = document.querySelectorAll('.flat-rent-sdk .book-button');
-    addBookButtonsListeners(sdkBookButtons, flatRentSdkProvider);
-  }
-
-  addtoggleFavoriteListeners();
-  warningTimerId = setTimeout(showWarningMessage, 300000);
-}
-
-const addBookButtonsListeners = (
-  buttons: NodeListOf<Element>,
-  provider: Provider
-): void => {
-  const checkInDate = new Date(
-    (<HTMLInputElement>document.getElementById('check-in-date')).value
-  );
-  const checkOutDate = new Date(
-    (<HTMLInputElement>document.getElementById('check-out-date')).value
-  );
-
-  buttons.forEach((button: HTMLButtonElement) => {
-    button.addEventListener('click', () => {
-      const bookParams: BookParams = {
-        placeId: button.dataset.id,
-        checkInDate,
-        checkOutDate
-      }
-
-      provider.book(bookParams);
-    });
-  });
-}
-
-const addtoggleFavoriteListeners = (): void => {
-  const addToFavoritesButtons = document.querySelectorAll('.favorites');
-
-  addToFavoritesButtons.forEach((button: HTMLButtonElement) => {
-    button.addEventListener('click', toggleFavorite);
-  });
-}
-
-const showWarningMessage = (): void => {
-  const bookButtons = document.querySelectorAll('.book-button');
-
-  disableButtons(bookButtons);
-  renderToast(
-    { text: 'Данные устарели. Обновите результаты поиска', type: 'error' },
-    { name: 'ОК!', handler: () => console.log('Кнопки бронирования отключены.') }
-  );
-}
-
-const disableButtons = (buttons: NodeListOf<Element>): void => {
-  buttons.forEach((button: HTMLButtonElement) => {
-    button.disabled = true;
-  })
-}
-
-export function toggleFavorite(e: Event): void {
-  if (!(e.currentTarget instanceof HTMLDivElement)) {
-    return;
-  }
-
-  const id = e.currentTarget.dataset.id;
-  const name = e.currentTarget.dataset.name || e.currentTarget.dataset.title;
-  const image = e.currentTarget.nextElementSibling.getAttribute('src');
-  const currentPlace: FavoritePlace = {
-    id,
-    name,
-    image
-  }
-  const localStorageItem = localStorage.getItem('favoriteItems');
-
-  if (localStorageItem) {
-    const favoriteItems: unknown = JSON.parse(localStorageItem);
-
-    if (Array.isArray(favoriteItems)) {
-      const favoriteItem = favoriteItems.find((item) => item.id === currentPlace.id);
-
-      if (favoriteItem) {
-        removeFromFavorites(currentPlace, favoriteItems);
-      } else {
-        addToFavorites(currentPlace, favoriteItems);
-      }
-    }
-  } else {
-    localStorage.setItem('favoriteItems', JSON.stringify([currentPlace]));
-  }
-
-  renderUserBlock();
-}
-
-function removeFromFavorites(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
-  const indexOfItem = favoriteItems.indexOf(currentPlace);
-  favoriteItems.splice(indexOfItem, 1);
-
-  if (favoriteItems.length) {
-    localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
-  } else {
-    localStorage.removeItem('favoriteItems');
-  }
-}
-
-function addToFavorites(currentPlace: FavoritePlace, favoriteItems: FavoritePlace[]): void {
-  favoriteItems.push(currentPlace);
-  localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
+  showSearchResult();
 }

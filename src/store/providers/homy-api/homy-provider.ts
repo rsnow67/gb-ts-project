@@ -1,6 +1,6 @@
 import { DataHelper } from '../../../helpers.js';
 import { renderToast } from '../../../lib.js';
-import { warningTimerId } from '../../../search-form.js';
+import { warningTimerId } from '../../../search-results.js';
 import { BookParams } from '../../domain/book-params.js';
 import { Place } from '../../domain/place.js';
 import { Provider } from '../../domain/provider.js';
