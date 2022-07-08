@@ -1,24 +1,24 @@
 export function getUserData(key: string): object | Error {
-  const item = localStorage.getItem(key);
-
-  if (item === null) {
-    return new Error(`Айтем с ключом "${key}" не существует.`);
-  }
-
-  const value: unknown = JSON.parse(item);
-
-  if (typeof value === 'object' && 'userName' in value && 'avatarUrl' in value) {
-    return value;
-  } else {
-    return new Error('Данные по этому ключу не соответствуют UserData.');
-  }
-}
-
-export function getFavoritesAmount(key: string): number {
   const localStorageItem = localStorage.getItem(key);
 
   if (localStorageItem === null) {
-    return;
+    throw new Error(`Айтем с ключом "${key}" не существует.`);
+  }
+
+  const value: unknown = JSON.parse(localStorageItem);
+
+  if (typeof value === 'object' && value !== null && 'userName' in value && 'avatarUrl' in value) {
+    return value;
+  }
+
+  throw new Error('Данные по этому ключу не соответствуют UserData.');
+}
+
+export function getFavoritesAmount(key: string): number | null {
+  const localStorageItem = localStorage.getItem(key);
+
+  if (localStorageItem === null) {
+    return null;
   }
 
   const data: unknown = JSON.parse(localStorageItem);
@@ -27,7 +27,7 @@ export function getFavoritesAmount(key: string): number {
     return data.length;
   }
 
-  return;
+  return null;
 }
 export abstract class DataHelper {
   public static cloneDate(date: Date): Date {

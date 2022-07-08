@@ -1,4 +1,4 @@
-import { handleSubmit, renderSearchFormBlock } from './search-form.js';
+import { renderSearchFormBlock } from './search-form.js';
 import { renderSearchStubBlock } from './search-results.js';
 import { renderUserBlock } from './user.js';
 import { renderToast } from './lib.js';
@@ -16,10 +16,7 @@ window.addEventListener('DOMContentLoaded', () => {
   );
 });
 
-const form = document.getElementById('search-form-block');
-form.addEventListener('submit', handleSubmit);
 export const userPosition = [59.9386, 30.3141];
 export const homyProvider = new HomyProvider();
 export const flatRentSdk = new FlatRentSdk();
 export const flatRentSdkProvider = new FlatRentSdkProvider();
-

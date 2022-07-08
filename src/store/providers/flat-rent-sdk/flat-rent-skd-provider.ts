@@ -12,15 +12,18 @@ export class FlatRentSdkProvider implements Provider {
   public static provider = 'flat-rent-sdk';
   public static apiUrl = 'http://localhost:3040';
 
-  public async search(filter: SearchFilter): Promise<Place[]> {
+  public async search(filter: SearchFilter): Promise<Place[] | null> {
     try {
       const result = await flatRentSdk.search(filter);
 
-      if (!(result instanceof Error)) {
-        return this.convertFlatListResponse(result);
+      if (result instanceof Error) {
+        throw result;
       }
+
+      return this.convertFlatListResponse(result);
     } catch (error) {
       console.error(error);
+      return null;
     }
   }
 
@@ -46,7 +49,7 @@ export class FlatRentSdkProvider implements Provider {
     )
   }
 
-  public async book(params: BookParams): Promise<number> {
+  public async book(params: BookParams): Promise<number | null> {
     const {
       placeId,
       checkInDate,
@@ -56,21 +59,23 @@ export class FlatRentSdkProvider implements Provider {
     try {
       const result = await flatRentSdk.book(placeId, checkInDate, checkOutDate);
 
-      if (!(result instanceof Error)) {
-        renderToast(
-          { text: 'Отель успешно забронирован.', type: 'success' },
-          { name: 'ОК!', handler: () => console.log(`Transaction ID: ${result}.`) }
-        );
-        clearTimeout(warningTimerId);
-
-        return result;
+      if (result instanceof Error) {
+        throw result;
       }
 
+      renderToast(
+        { text: 'Отель успешно забронирован.', type: 'success' },
+        { name: 'ОК!', handler: () => console.log(`Transaction ID: ${result}.`) }
+      );
+      clearTimeout(warningTimerId);
+
+      return result;
     } catch (error) {
       renderToast(
         { text: 'Не получилось забронировать отель. Попробуйте позже.', type: 'error' },
         { name: 'Понял', handler: () => { console.error(error); } }
       );
+      return null;
     }
   }
 }

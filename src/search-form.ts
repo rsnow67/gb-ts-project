@@ -5,7 +5,7 @@ import { SearchFilter } from './store/domain/search-filter.js';
 import { flatRentSdkProvider, homyProvider } from './index.js';
 import { Place } from './store/domain/place.js';
 
-export let allData: Place[] = null;
+export const allData: Place[] = [];
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -64,6 +64,12 @@ export function renderSearchFormBlock(
     </form>
     `
   );
+
+  const form = document.getElementById('search-form-block');
+
+  if (form) {
+    form.addEventListener('submit', handleSubmit);
+  }
 }
 
 export async function handleSubmit(e: Event) {
@@ -94,7 +100,14 @@ export async function handleSubmit(e: Event) {
   }
   const homyData = await homyProvider.search(sendData);
   const sdkData = await flatRentSdkProvider.search(params);
-  allData = [].concat(homyData, sdkData);
+
+  if (homyData) {
+    allData.concat(homyData)
+  }
+
+  if (sdkData) {
+    allData.concat(sdkData);
+  }
 
   showSearchResult();
 }

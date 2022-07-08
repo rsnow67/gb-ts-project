@@ -1,13 +1,13 @@
 import { flatRentSdkProvider, homyProvider } from './index.js';
 import { renderBlock, renderToast } from './lib.js';
-import { FavoritePlace } from './place.js';
+import { FavoritePlace } from './favorite-place.js';
 import { allData } from './search-form.js';
 import { BookParams } from './store/domain/book-params.js';
 import { Place } from './store/domain/place.js';
 import { Provider } from './store/domain/provider.js';
 import { renderUserBlock } from './user.js';
 
-export let warningTimerId: ReturnType<typeof setTimeout> = null;
+export let warningTimerId: ReturnType<typeof setTimeout>;
 
 export const renderSearchStubBlock = () => {
   renderBlock(
@@ -29,14 +29,22 @@ export const showSearchResult = () => {
 
   renderSearchResultsBlock();
 
-  const select: HTMLSelectElement = document.querySelector('.search-results-filter select');
+  const select = document.querySelector('.search-results-filter select');
+
+  if (!(select instanceof HTMLSelectElement)) {
+    return;
+  }
 
   select.addEventListener('change', () => {
     const options = select.options;
     const selectedIndex = select.selectedIndex;
     const sortType = options[selectedIndex].value;
-
     const sortedData = sortResultsList(sortType);
+
+    if (!sortedData) {
+      return;
+    }
+
     const content = makeListContent(sortedData);
     renderPlacesList(content);
   });
@@ -45,6 +53,11 @@ export const showSearchResult = () => {
   const selectedIndex = select.selectedIndex;
   const sortType = options[selectedIndex].value;
   const sortedData = sortResultsList(sortType);
+
+  if (!sortedData) {
+    return;
+  }
+
   const content = makeListContent(sortedData);
   renderPlacesList(content);
 
@@ -95,11 +108,7 @@ const renderSearchResultsBlock = () => {
   );
 }
 
-const sortResultsList = (type: string): Place[] => {
-  if (!allData) {
-    return;
-  }
-
+const sortResultsList = (type: string): Place[] | null => {
   if (type === 'price - low to high') {
     return allData.sort(sortAscendingPrice);
   }
@@ -111,6 +120,8 @@ const sortResultsList = (type: string): Place[] => {
   if (type === 'remoteness - low to high') {
     return allData.sort(sortAscendingRemoteness);
   }
+
+  return null;
 }
 
 const sortAscendingPrice = (a: Place, b: Place): number => {
@@ -168,13 +179,13 @@ const isPlaceFavorite = (place: Place): boolean => {
     const favoriteItems: unknown = JSON.parse(localStorageItem);
 
     if (Array.isArray(favoriteItems)) {
-      const favoriteItem = favoriteItems.some((item) => item.id === place.id);
+      const hasFavoriteItem = favoriteItems.some((item) => item.id === place.id);
 
-      return favoriteItem;
+      return hasFavoriteItem;
     }
-  } else {
-    return false;
   }
+
+  return false;
 }
 
 const renderPlacesList = (listContent: string) => {
@@ -192,15 +203,23 @@ const addBookButtonsListeners = (
     (<HTMLInputElement>document.getElementById('check-out-date')).value
   );
 
-  buttons.forEach((button: HTMLButtonElement) => {
-    button.addEventListener('click', () => {
-      const bookParams: BookParams = {
-        placeId: button.dataset.id,
-        checkInDate,
-        checkOutDate
-      }
+  buttons.forEach((button) => {
+    if (!(button instanceof HTMLButtonElement)) {
+      return;
+    }
 
-      provider.book(bookParams);
+    button.addEventListener('click', () => {
+      const placeId = button.dataset.id;
+
+      if (placeId) {
+        const bookParams: BookParams = {
+          placeId,
+          checkInDate,
+          checkOutDate
+        }
+
+        provider.book(bookParams);
+      }
     });
   });
 }
@@ -208,8 +227,10 @@ const addBookButtonsListeners = (
 const addtoggleFavoriteListeners = (): void => {
   const addToFavoritesButtons = document.querySelectorAll('.favorites');
 
-  addToFavoritesButtons.forEach((button: HTMLButtonElement) => {
-    button.addEventListener('click', toggleFavorite);
+  addToFavoritesButtons.forEach((button) => {
+    if (button instanceof HTMLButtonElement) {
+      button.addEventListener('click', toggleFavorite);
+    }
   });
 }
 
@@ -219,13 +240,15 @@ const showWarningMessage = (): void => {
   disableButtons(bookButtons);
   renderToast(
     { text: 'Данные устарели. Обновите результаты поиска', type: 'error' },
-    { name: 'ОК!', handler: () => console.log('Кнопки бронирования отключены.') }
+    null
   );
 }
 
 const disableButtons = (buttons: NodeListOf<Element>): void => {
-  buttons.forEach((button: HTMLButtonElement) => {
-    button.disabled = true;
+  buttons.forEach((button) => {
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = true;
+    }
   })
 }
 
@@ -236,7 +259,17 @@ const toggleFavorite = (e: Event): void => {
 
   const id = e.currentTarget.dataset.id;
   const name = e.currentTarget.dataset.name;
-  const image = e.currentTarget.nextElementSibling.getAttribute('src');
+  const favoriteButtonNextSibling = e.currentTarget.nextElementSibling;
+  let image;
+
+  if (favoriteButtonNextSibling) {
+    image = favoriteButtonNextSibling.getAttribute('src');
+  }
+
+  if (!id || !name || !image) {
+    return;
+  }
+
   const currentPlace: FavoritePlace = {
     id,
     name,
@@ -268,7 +301,10 @@ const removeFromFavorites = (
   favoriteItems: FavoritePlace[]
 ): void => {
   const element = document.querySelector(`[data-id='${currentPlace.id}']`);
-  element.classList.remove('active');
+
+  if (element) {
+    element.classList.remove('active');
+  }
 
   const indexOfItem = favoriteItems.findIndex((item) => item.id === currentPlace.id);
   favoriteItems.splice(indexOfItem, 1);
@@ -285,7 +321,10 @@ const addToFavorites = (
   favoriteItems: FavoritePlace[]
 ): void => {
   const element = document.querySelector(`[data-id='${currentPlace.id}']`);
-  element.classList.add('active');
+
+  if (element) {
+    element.classList.add('active');
+  }
 
   favoriteItems.push(currentPlace);
   localStorage.setItem('favoriteItems', JSON.stringify(favoriteItems));
