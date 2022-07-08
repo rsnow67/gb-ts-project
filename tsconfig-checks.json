@@ -11,7 +11,7 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   }
 }

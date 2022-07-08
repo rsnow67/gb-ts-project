@@ -5,7 +5,7 @@ import { renderToast } from './lib.js';
 import { FlatRentSdk } from './flat-rent-sdk.js';
 import { HomyProvider } from './store/providers/homy-api/homy-provider.js';
 import { FlatRentSdkProvider } from './store/providers/flat-rent-sdk/flat-rent-skd-provider.js';
-import { MapPoint } from './map-points.js';
+import { MapPoint } from './map-point.js';
 
 window.addEventListener('DOMContentLoaded', () => {
   renderUserBlock();

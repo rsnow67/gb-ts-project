@@ -35,30 +35,10 @@ export const showSearchResult = (allData: Place[]) => {
   }
 
   select.addEventListener('change', () => {
-    const options = [...select.options];
-    const selectedIndex = select.selectedIndex;
-    const sortType = options[selectedIndex]?.value || '';
-    const sortedData = sortResultsList(allData, sortType);
-
-    if (!sortedData) {
-      return;
-    }
-
-    const content = makeListContent(sortedData);
-    renderPlacesList(content);
+    handleSelectSort(select, allData);
   });
 
-  const options = select.options;
-  const selectedIndex = select.selectedIndex;
-  const sortType = options[selectedIndex]?.value || '';
-  const sortedData = sortResultsList(allData, sortType);
-
-  if (!sortedData) {
-    return;
-  }
-
-  const content = makeListContent(sortedData);
-  renderPlacesList(content);
+  select.dispatchEvent(new Event('change'));
 
   const homyBookButtons = document.querySelectorAll('.homy .book-button');
   const sdkBookButtons = document.querySelectorAll('.flat-rent-sdk .book-button');
@@ -105,6 +85,20 @@ const renderSearchResultsBlock = () => {
     <div id='search-results'></div>
     `
   );
+}
+
+const handleSelectSort = (select: HTMLSelectElement, data: Place[]): void => {
+  const options = select.options;
+  const selectedIndex = select.selectedIndex;
+  const sortType = options[selectedIndex]?.value || '';
+  const sortedData = sortResultsList(data, sortType);
+
+  if (!sortedData) {
+    return;
+  }
+
+  const content = makeListContent(sortedData);
+  renderPlacesList(content);
 }
 
 const sortResultsList = (array: Place[], type: string): Place[] | null => {

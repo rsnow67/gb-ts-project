@@ -1,5 +1,5 @@
 import { renderBlock } from './lib.js';
-import { DataHelper } from './helpers.js';
+import { DataHelper } from './data-helper.js';
 import { showSearchResult } from './search-results.js';
 import { SearchFilter } from './store/domain/search-filter.js';
 import { flatRentSdkProvider, homyProvider } from './index.js';

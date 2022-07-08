@@ -1,7 +1,7 @@
-import { MapHelper } from '../../../helpers.js';
+import { MapHelper } from '../../../map-helper.js';
 import { flatRentSdk, userPosition } from '../../../index.js';
 import { renderToast } from '../../../lib.js';
-import { MapPoint } from '../../../map-points.js';
+import { MapPoint } from '../../../map-point.js';
 import { warningTimerId } from '../../../search-results.js';
 import { BookParams } from '../../domain/book-params.js';
 import { Place } from '../../domain/place.js';

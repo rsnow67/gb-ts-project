@@ -1,4 +1,4 @@
-import { DataHelper } from '../../../helpers.js';
+import { DataHelper } from '../../../data-helper.js';
 import { renderToast } from '../../../lib.js';
 import { warningTimerId } from '../../../search-results.js';
 import { BookParams } from '../../domain/book-params.js';
