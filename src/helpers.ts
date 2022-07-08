@@ -1,3 +1,5 @@
+import { MapPoint } from './map-points';
+
 export function getUserData(key: string): object | Error {
   const localStorageItem = localStorage.getItem(key);
 
@@ -59,13 +61,17 @@ export abstract class MapHelper {
   private static radiusOfTheEarthInKm = 6371;
 
   public static getDistanceFromLatLngInKm(
-    startPoint: number[],
-    endPoint: number[]
-  ): number {
-    const lat1 = startPoint[0];
-    const lng1 = startPoint[1];
-    const lat2 = endPoint[0];
-    const lng2 = endPoint[1];
+    startPoint: MapPoint | null,
+    endPoint: MapPoint | null
+  ): number | null {
+    if (!startPoint || !endPoint) {
+      return null;
+    }
+
+    const lat1 = startPoint.lat;
+    const lng1 = startPoint.lng;
+    const lat2 = endPoint.lat;
+    const lng2 = endPoint.lng;
     const latDistance = this.deg2rad(lat2 - lat1);
     const lngDistance = this.deg2rad(lng2 - lng1);
 

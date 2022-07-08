@@ -1,7 +1,6 @@
 import { flatRentSdkProvider, homyProvider } from './index.js';
 import { renderBlock, renderToast } from './lib.js';
 import { FavoritePlace } from './favorite-place.js';
-import { allData } from './search-form.js';
 import { BookParams } from './store/domain/book-params.js';
 import { Place } from './store/domain/place.js';
 import { Provider } from './store/domain/provider.js';
@@ -21,8 +20,8 @@ export const renderSearchStubBlock = () => {
   );
 }
 
-export const showSearchResult = () => {
-  if (!allData) {
+export const showSearchResult = (allData: Place[]) => {
+  if (!allData.length) {
     renderEmptyOrErrorSearchBlock('Не найдено подходящих результатов.');
     return;
   }
@@ -36,10 +35,10 @@ export const showSearchResult = () => {
   }
 
   select.addEventListener('change', () => {
-    const options = select.options;
+    const options = [...select.options];
     const selectedIndex = select.selectedIndex;
-    const sortType = options[selectedIndex].value;
-    const sortedData = sortResultsList(sortType);
+    const sortType = options[selectedIndex]?.value || '';
+    const sortedData = sortResultsList(allData, sortType);
 
     if (!sortedData) {
       return;
@@ -51,8 +50,8 @@ export const showSearchResult = () => {
 
   const options = select.options;
   const selectedIndex = select.selectedIndex;
-  const sortType = options[selectedIndex].value;
-  const sortedData = sortResultsList(sortType);
+  const sortType = options[selectedIndex]?.value || '';
+  const sortedData = sortResultsList(allData, sortType);
 
   if (!sortedData) {
     return;
@@ -108,20 +107,17 @@ const renderSearchResultsBlock = () => {
   );
 }
 
-const sortResultsList = (type: string): Place[] | null => {
-  if (type === 'price - low to high') {
-    return allData.sort(sortAscendingPrice);
+const sortResultsList = (array: Place[], type: string): Place[] | null => {
+  switch (type) {
+    case 'price - low to high':
+      return array.sort(sortAscendingPrice);
+    case 'price - high to low':
+      return array.sort(sortDescendingPrice);
+    case 'remoteness - low to high':
+      return array.sort(sortAscendingRemoteness);
+    default:
+      return null;
   }
-
-  if (type === 'price - high to low') {
-    return allData.sort(sortDescendingPrice);
-  }
-
-  if (type === 'remoteness - low to high') {
-    return allData.sort(sortAscendingRemoteness);
-  }
-
-  return null;
 }
 
 const sortAscendingPrice = (a: Place, b: Place): number => {
@@ -133,12 +129,21 @@ const sortDescendingPrice = (a: Place, b: Place): number => {
 }
 
 const sortAscendingRemoteness = (a: Place, b: Place): number => {
-  return a.remoteness - b.remoteness;
+  if (a.remoteness && b.remoteness) {
+    return a.remoteness - b.remoteness;
+  } else if (a.remoteness) {
+    return -1;
+  } else {
+    return 1;
+  }
 }
 
 const makeListContent = (places: Place[]): string => {
   const items = places.map((place) => {
     const active = isPlaceFavorite(place) ? 'active' : '';
+    const remotenessMessage = place.remoteness ?
+      `${place.remoteness} км от вас` :
+      'Расстояние неизвестно'
 
     return (
       `
@@ -153,7 +158,7 @@ const makeListContent = (places: Place[]): string => {
               <p>${place.name}</p>
               <p class="price">${place.price}&#8381;</p>
             </div>
-            <div class="result-info--map"><i class="map-icon"></i> ${place.remoteness} км от вас</div>
+            <div class="result-info--map"><i class="map-icon"></i>${remotenessMessage}</div>
             <div class="result-info--descr">${place.description}</div>
             <div class="result-info--footer">
               <div>
@@ -209,7 +214,7 @@ const addBookButtonsListeners = (
     }
 
     button.addEventListener('click', () => {
-      const placeId = button.dataset.id;
+      const placeId = button.dataset['id'];
 
       if (placeId) {
         const bookParams: BookParams = {
@@ -228,7 +233,7 @@ const addtoggleFavoriteListeners = (): void => {
   const addToFavoritesButtons = document.querySelectorAll('.favorites');
 
   addToFavoritesButtons.forEach((button) => {
-    if (button instanceof HTMLButtonElement) {
+    if (button instanceof HTMLDivElement) {
       button.addEventListener('click', toggleFavorite);
     }
   });
@@ -257,14 +262,10 @@ const toggleFavorite = (e: Event): void => {
     return;
   }
 
-  const id = e.currentTarget.dataset.id;
-  const name = e.currentTarget.dataset.name;
+  const id = e.currentTarget.dataset['id'];
+  const name = e.currentTarget.dataset['name'];
   const favoriteButtonNextSibling = e.currentTarget.nextElementSibling;
-  let image;
-
-  if (favoriteButtonNextSibling) {
-    image = favoriteButtonNextSibling.getAttribute('src');
-  }
+  const image = favoriteButtonNextSibling ? favoriteButtonNextSibling.getAttribute('src') : '';
 
   if (!id || !name || !image) {
     return;

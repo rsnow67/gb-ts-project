@@ -1,6 +1,7 @@
 import { MapHelper } from '../../../helpers.js';
 import { flatRentSdk, userPosition } from '../../../index.js';
 import { renderToast } from '../../../lib.js';
+import { MapPoint } from '../../../map-points.js';
 import { warningTimerId } from '../../../search-results.js';
 import { BookParams } from '../../domain/book-params.js';
 import { Place } from '../../domain/place.js';
@@ -22,7 +23,12 @@ export class FlatRentSdkProvider implements Provider {
 
       return this.convertFlatListResponse(result);
     } catch (error) {
-      console.error(error);
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error(error);
+      }
+
       return null;
     }
   }
@@ -34,15 +40,24 @@ export class FlatRentSdkProvider implements Provider {
   }
 
   private convertPlaceResponse(item: Flat): Place {
+    let flatCoordinates: MapPoint | null = null;
+
+    if (item.coordinates[0] && item.coordinates[1]) {
+      flatCoordinates = {
+        lat: item.coordinates[0],
+        lng: item.coordinates[1]
+      }
+    }
+
     return new Place(
       FlatRentSdkProvider.provider,
       String(item.id),
       item.title,
       item.details,
-      item.photos[0],
+      item.photos[0] || '',
       MapHelper.getDistanceFromLatLngInKm(
         userPosition,
-        item.coordinates
+        flatCoordinates
       ),
       item.bookedDates,
       item.totalPrice
@@ -73,7 +88,15 @@ export class FlatRentSdkProvider implements Provider {
     } catch (error) {
       renderToast(
         { text: 'Не получилось забронировать отель. Попробуйте позже.', type: 'error' },
-        { name: 'Понял', handler: () => { console.error(error); } }
+        {
+          name: 'Понял', handler: () => {
+            if (error instanceof Error) {
+              console.error(error.message);
+            } else {
+              console.error(error);
+            }
+          }
+        }
       );
       return null;
     }

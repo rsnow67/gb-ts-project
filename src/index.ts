@@ -5,6 +5,7 @@ import { renderToast } from './lib.js';
 import { FlatRentSdk } from './flat-rent-sdk.js';
 import { HomyProvider } from './store/providers/homy-api/homy-provider.js';
 import { FlatRentSdkProvider } from './store/providers/flat-rent-sdk/flat-rent-skd-provider.js';
+import { MapPoint } from './map-points.js';
 
 window.addEventListener('DOMContentLoaded', () => {
   renderUserBlock();
@@ -16,7 +17,10 @@ window.addEventListener('DOMContentLoaded', () => {
   );
 });
 
-export const userPosition = [59.9386, 30.3141];
+export const userPosition: MapPoint = {
+  lat: 59.9386,
+  lng: 30.3141
+};
 export const homyProvider = new HomyProvider();
 export const flatRentSdk = new FlatRentSdk();
 export const flatRentSdkProvider = new FlatRentSdkProvider();

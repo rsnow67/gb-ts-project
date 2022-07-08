@@ -21,7 +21,12 @@ export class HomyProvider implements Provider {
 
       return this.convertPlaceListResponse(result);
     } catch (error) {
-      console.error(error);
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error(error);
+      }
+
       return null;
     }
   }
@@ -80,7 +85,15 @@ export class HomyProvider implements Provider {
     } catch (error) {
       renderToast(
         { text: 'Не получилось забронировать отель. Попробуйте позже.', type: 'error' },
-        { name: 'Понял', handler: () => console.error(error) }
+        {
+          name: 'Понял', handler: () => {
+            if (error instanceof Error) {
+              console.error(error.message);
+            } else {
+              console.error(error);
+            }
+          }
+        }
       );
 
       return null;

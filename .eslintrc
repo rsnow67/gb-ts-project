@@ -11,7 +11,15 @@
   ],
   "rules": {
     "quotes": ["error", "single"],
-    "indent": ["error", 2]
+    "indent": ["error", 2, { "SwitchCase": 1 }],
+    "no-unused-vars": [
+      "error", 
+      { 
+      "vars": "all", 
+      "args": "after-used", 
+      "ignoreRestSiblings": false 
+      }
+    ]
   },
   "env": {
     "browser": true,
