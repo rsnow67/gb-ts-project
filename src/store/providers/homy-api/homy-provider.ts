@@ -1,4 +1,4 @@
-import { DataHelper } from '../../../helpers.js';
+import { DataHelper } from '../../../data-helper.js';
 import { renderToast } from '../../../lib.js';
 import { warningTimerId } from '../../../search-results.js';
 import { BookParams } from '../../domain/book-params.js';
@@ -13,7 +13,7 @@ export class HomyProvider implements Provider {
 
   public static apiUrl = 'http://localhost:3030';
 
-  public async search(filter: SearchFilter): Promise<Place[]> {
+  public async search(filter: SearchFilter): Promise<Place[] | null> {
     try {
       const url = HomyProvider.apiUrl + '/places?' + this.convertFilterToQueryString(filter);
       const result = await HttpHelper.fetchAsJson<HomyPlace[]>(url);
@@ -21,9 +21,14 @@ export class HomyProvider implements Provider {
 
       return this.convertPlaceListResponse(result);
     } catch (error) {
-      console.error(error);
-    }
+      if (error instanceof Error) {
+        console.error(error.message);
+      } else {
+        console.error(error);
+      }
 
+      return null;
+    }
   }
 
   private convertFilterToQueryString(filter: SearchFilter): string {
@@ -57,7 +62,7 @@ export class HomyProvider implements Provider {
     )
   }
 
-  public async book(params: BookParams): Promise<number> {
+  public async book(params: BookParams): Promise<number | null> {
     const {
       placeId,
       checkInDate,
@@ -80,8 +85,18 @@ export class HomyProvider implements Provider {
     } catch (error) {
       renderToast(
         { text: 'Не получилось забронировать отель. Попробуйте позже.', type: 'error' },
-        { name: 'Понял', handler: () => console.error(error) }
+        {
+          name: 'Понял', handler: () => {
+            if (error instanceof Error) {
+              console.error(error.message);
+            } else {
+              console.error(error);
+            }
+          }
+        }
       );
+
+      return null;
     }
   }
 }

@@ -3,10 +3,16 @@ import { ToastAction } from './toast-action.js';
 
 export function renderBlock(elementId: string, html: string): void {
   const element = document.getElementById(elementId);
-  element.innerHTML = html;
+
+  if (element) {
+    element.innerHTML = html;
+  }
 }
 
-export function renderToast(message: ToastMessage, action: ToastAction) {
+export function renderToast(
+  message: ToastMessage | null,
+  action: ToastAction | null
+) {
   let messageText = '';
 
   if (message != null) {

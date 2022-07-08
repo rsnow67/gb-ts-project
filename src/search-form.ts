@@ -1,11 +1,9 @@
 import { renderBlock } from './lib.js';
-import { DataHelper } from './helpers.js';
+import { DataHelper } from './data-helper.js';
 import { showSearchResult } from './search-results.js';
 import { SearchFilter } from './store/domain/search-filter.js';
 import { flatRentSdkProvider, homyProvider } from './index.js';
 import { Place } from './store/domain/place.js';
-
-export let allData: Place[] = null;
 
 export function renderSearchFormBlock(
   checkInDate?: Date,
@@ -64,10 +62,16 @@ export function renderSearchFormBlock(
     </form>
     `
   );
+
+  const form = document.getElementById('search-form-block');
+
+  if (form) {
+    form.addEventListener('submit', handleSubmit);
+  }
 }
 
-export async function handleSubmit(e: Event) {
-  e.preventDefault();
+export async function handleSubmit(event: Event) {
+  event.preventDefault();
 
   const city = (<HTMLInputElement>document.getElementById('city')).value;
   const checkInDate = new Date(
@@ -94,7 +98,15 @@ export async function handleSubmit(e: Event) {
   }
   const homyData = await homyProvider.search(sendData);
   const sdkData = await flatRentSdkProvider.search(params);
-  allData = [].concat(homyData, sdkData);
+  let allData: Place[] = [];
 
-  showSearchResult();
+  if (homyData) {
+    allData = [...allData, ...homyData];
+  }
+
+  if (sdkData) {
+    allData = [...allData, ...sdkData];
+  }
+
+  showSearchResult(allData);
 }

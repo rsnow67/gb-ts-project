@@ -6,7 +6,7 @@ export class Place {
     public readonly name: string,
     public readonly description: string,
     public readonly image: string,
-    public readonly remoteness: number,
+    public readonly remoteness: number | null,
     public readonly bookedDates: number[],
     public readonly price: number,
   ) { }
